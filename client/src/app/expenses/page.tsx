@@ -4,6 +4,7 @@ import {
   ExpenseByCategorySummary,
   useGetExpensesByCategoryQuery,
 } from "@/state/api";
+import { useAppSelector } from "@/app/redux";
 import { useMemo, useState } from "react";
 import Header from "@/app/(components)/Header";
 import {
@@ -26,6 +27,8 @@ type AggregatedData = {
 };
 
 const Expenses = () => {
+  // All hooks must be called first, before ANY conditional returns
+  const admin = useAppSelector((state) => state.global.admin);
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [startDate, setStartDate] = useState("");
@@ -62,13 +65,25 @@ const Expenses = () => {
           acc[data.category].color = `#${Math.floor(
             Math.random() * 16777215
           ).toString(16)}`;
-          acc[data.category].amount += amount;
         }
+        acc[data.category].amount += amount;
         return acc;
       }, {});
 
     return Object.values(filtered);
   }, [expenses, selectedCategory, startDate, endDate]);
+
+  // Now we can check access AFTER all hooks are called
+  if (admin?.role !== "SUPER_ADMIN") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-red-500 mb-4">Access Denied</h1>
+          <p className="text-gray-600">Only super admins can view expenses.</p>
+        </div>
+      </div>
+    );
+  }
 
   const classNames = {
     label: "block text-sm font-medium text-gray-700",

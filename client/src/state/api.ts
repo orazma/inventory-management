@@ -56,11 +56,56 @@ export interface User {
   email: string;
 }
 
+export interface NewUser {
+  userId: string;
+  name: string;
+  email: string;
+}
+
+export interface Admin {
+  adminId: string;
+  name: string;
+  email: string;
+  role: "SUPER_ADMIN" | "MODERATOR";
+}
+
 export const api = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL }),
   reducerPath: "api",
-  tagTypes: ["DashboardMetrics", "Products", "Users", "Expenses"],
+  tagTypes: ["DashboardMetrics", "Products", "Users", "Expenses", "Admins"],
   endpoints: (build) => ({
+    signin: build.mutation<
+      { success: boolean; admin: Admin },
+      { email: string; password: string }
+    >({
+      query: (credentials) => ({
+        url: "/auth/signin",
+        method: "POST",
+        body: credentials,
+      }),
+    }),
+    createAdmin: build.mutation<
+      { success: boolean; admin: Admin },
+      { adminId: string; name: string; email: string; password: string; role?: string }
+    >({
+      query: (data) => ({
+        url: "/auth/create",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Admins"],
+    }),
+    getAllAdmins: build.query<Admin[], void>({
+      query: () => "/auth/admins",
+      providesTags: ["Admins"],
+    }),
+    deleteAdmin: build.mutation<{ success: boolean; message: string }, string>({
+      query: (adminId) => ({
+        url: `/auth/admins/${adminId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Admins"],
+    }),
     getDashboardMetrics: build.query<DashboardMetrics, void>({
       query: () => "/dashboard",
       providesTags: ["DashboardMetrics"],
@@ -84,6 +129,21 @@ export const api = createApi({
       query: () => "/users",
       providesTags: ["Users"],
     }),
+    createUser: build.mutation<{ success: boolean; user: User }, NewUser>({
+      query: (newUser) => ({
+        url: "/users",
+        method: "POST",
+        body: newUser,
+      }),
+      invalidatesTags: ["Users"],
+    }),
+    deleteUser: build.mutation<{ success: boolean; message: string }, string>({
+      query: (userId) => ({
+        url: `/users/${userId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Users"],
+    }),
     getExpensesByCategory: build.query<ExpenseByCategorySummary[], void>({
       query: () => "/expenses",
       providesTags: ["Expenses"],
@@ -92,9 +152,15 @@ export const api = createApi({
 });
 
 export const {
+  useSigninMutation,
+  useCreateAdminMutation,
+  useGetAllAdminsQuery,
+  useDeleteAdminMutation,
   useGetDashboardMetricsQuery,
   useGetProductsQuery,
   useCreateProductMutation,
   useGetUsersQuery,
+  useCreateUserMutation,
+  useDeleteUserMutation,
   useGetExpensesByCategoryQuery,
 } = api;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppDispatch, useAppSelector } from "@/app/redux";
-import { setIsSidebarCollapsed } from "@/state";
+import { setIsSidebarCollapsed, logout } from "@/state";
 import {
   Archive,
   CircleDollarSign,
@@ -11,10 +11,12 @@ import {
   Menu,
   SlidersHorizontal,
   User,
+  LogOut,
+  Shield,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import React from "react";
 
 interface SidebarLinkProps {
@@ -61,13 +63,27 @@ const SidebarLink = ({
 
 const Sidebar = () => {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const isSidebarCollapsed = useAppSelector(
     (state) => state.global.isSidebarCollapsed
+  );
+  const admin = useAppSelector((state) => state.global.admin);
+  const isAuthenticated = useAppSelector(
+    (state) => state.global.isAuthenticated
   );
 
   const toggleSidebar = () => {
     dispatch(setIsSidebarCollapsed(!isSidebarCollapsed));
   };
+
+  const handleLogout = () => {
+    dispatch(logout());
+    router.push("/signin");
+  };
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const sidebarClassNames = `fixed flex flex-col ${
     isSidebarCollapsed ? "w-0 md:w-16" : "w-72 md:w-64"
@@ -124,28 +140,63 @@ const Sidebar = () => {
           label="Products"
           isCollapsed={isSidebarCollapsed}
         />
-        <SidebarLink
-          href="/users"
-          icon={User}
-          label="Users"
-          isCollapsed={isSidebarCollapsed}
-        />
+        
+        {/* Users - Only for Super Admin */}
+        {admin?.role === "SUPER_ADMIN" && (
+          <SidebarLink
+            href="/users"
+            icon={User}
+            label="Users"
+            isCollapsed={isSidebarCollapsed}
+          />
+        )}
+
+        {/* Moderators - Only for Super Admin */}
+        {admin?.role === "SUPER_ADMIN" && (
+          <SidebarLink
+            href="/moderators"
+            icon={Shield}
+            label="Moderators"
+            isCollapsed={isSidebarCollapsed}
+          />
+        )}
+
         <SidebarLink
           href="/settings"
           icon={SlidersHorizontal}
           label="Settings"
           isCollapsed={isSidebarCollapsed}
         />
-        <SidebarLink
-          href="/expenses"
-          icon={CircleDollarSign}
-          label="Expenses"
-          isCollapsed={isSidebarCollapsed}
-        />
+
+        {/* Expenses - Only for Super Admin */}
+        {admin?.role === "SUPER_ADMIN" && (
+          <SidebarLink
+            href="/expenses"
+            icon={CircleDollarSign}
+            label="Expenses"
+            isCollapsed={isSidebarCollapsed}
+          />
+        )}
+      </div>
+
+      {/* ADMIN INFO & LOGOUT */}
+      <div className={`${isSidebarCollapsed ? "hidden" : "block"} mb-10 px-8`}>
+        <div className="mb-4 p-3 bg-gray-100 rounded-lg">
+          <p className="text-xs font-semibold text-gray-700">{admin?.name}</p>
+          <p className="text-xs text-gray-500 mb-1">{admin?.email}</p>
+          <p className="text-xs font-medium text-blue-600">{admin?.role}</p>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded transition"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="font-medium text-sm">Logout</span>
+        </button>
       </div>
 
       {/* FOOTER */}
-      <div className={`${isSidebarCollapsed ? "hidden" : "block"} mb-10`}>
+      <div className={`${isSidebarCollapsed ? "hidden" : "block"} mb-2 px-8`}>
         <p className="text-center text-xs text-gray-500">&copy; 2024 Edstock</p>
       </div>
     </div>
